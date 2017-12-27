@@ -1,0 +1,22 @@
+- część drzewa to jest to co ci mówiłam z tymi paskami i z tym rysunkiem co wysyłałam, czyli
+* rysujesz powtarzające się paski z pikseli
+* rysujesz prostokąty
+* możesz też zrobić obrazek drzewa wysokiego na cały ekran i pozwolić żeby część drzewa wyszła poza ekran
+- z podbijaniem jest tak że ptak spada cały czas na dół ze stałą prędkością a ruch podbijający po prostu go podnosi
+w uproszczeniu
+możesz się pobawić też w siły grawitacji :v
+czyli ptak ma przyspieszenie i podbijanie zmienia chwilowo przyspieszenie mocno do góry, bo zadziałala siła podbicia, a cały czas działa siła grawitacji w dół i wtedy to bedzie bardziej płynne
+
+między czasem jednej klatki a drugiej
+w kazdym razie jak masz już ten czas
+to załóżmy że drzewka na ekranie, a ptaszek w rzeczywistości porusza się 100px na sekundę w lewo
+v = s/t → s = v*t
+v to nasze 100px na sekunde (możesz poeksperymentować)
+t to nasz czas pomiędzy klatkami
+no to jak to pomnożysz to wyjdzie ci o ile pikseli masz teraz przesunąć wszystkie drzewa
+
+użyj al_get_timer_count i licz delte między tym a zapamiętanym poprzednim
+
+int64_t al_get_timer_count(const ALLEGRO_TIMER *timer)
+
+czyli ptak ma przyspieszenie i podbijanie zmienia chwilowo przyspieszenie mocno do góry, bo zadziałala siła podbicia, a cały czas działa siła grawitacji w dół i wtedy to bedzie bardziej płynne
