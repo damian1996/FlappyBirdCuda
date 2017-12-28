@@ -27,10 +27,12 @@ class Game {
   ALLEGRO_BITMAP *gilAlive = NULL;
   ALLEGRO_BITMAP *gilDead = NULL;
   ALLEGRO_FONT *font = NULL;
+  Bird gil;
   vector<Tree> list_trees;
   float xes[4] = {400.0, 650.0, 900.0};
 public:
-  Game(){};
+  Game();
+  ~Game();
   void initAllegro();
   void initGame();
   void drawInitialBoard(Bird &gil);
@@ -40,8 +42,7 @@ public:
   bool droppedTooLow(Bird& bird);
   bool intersects(Bird& bird, float CircX, float CircY);
   bool collisionCheck(Bird& bird);
-  void reallocAll();
-  void solve(Bird &gil);
+  void mainLoop();
 };
 
 #endif

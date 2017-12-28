@@ -1,5 +1,26 @@
 #include "game.h"
 
+Game::Game()
+{
+  Game::gil.x = 100.0;
+  Game::gil.y =  (float) SCREEN_H/2;
+  initAllegro();
+  initGame();
+  drawInitialBoard(gil);
+  createEventQueue();
+  startGame();
+}
+
+Game::~Game()
+{
+  al_destroy_bitmap(gilDead);
+  al_destroy_bitmap(gilAlive);
+  al_destroy_timer(timer);
+  al_destroy_display(display);
+  al_destroy_event_queue(event_queue);
+  al_destroy_font(font);
+}
+
 void Game::initAllegro()
 {
   if(!al_init()) {
@@ -162,16 +183,7 @@ bool Game::collisionCheck(Bird& bird)
   return false;
 }
 
-void Game::reallocAll()
-{
-  al_destroy_bitmap(gilDead);
-  al_destroy_bitmap(gilAlive);
-  al_destroy_timer(timer);
-  al_destroy_display(display);
-  al_destroy_event_queue(event_queue);
-}
-
-void Game::solve(Bird &gil)
+void Game::mainLoop()
 {
   bool hit = false;
   int result = 0;

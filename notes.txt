@@ -1,52 +1,45 @@
-bool Game::intersects(Bird& bird, float CircX, float CircY)
-{
-    float DeltaX = CircleX - Max(RectX, Min(CircleX, RectX + RectWidth));
-    float DeltaY = CircleY - Max(RectY, Min(CircleY, RectY + RectHeight));
-    return (DeltaX * DeltaX + DeltaY * DeltaY) < (CircleRadius * CircleRadius);
+http://fizyka.pisz.pl/strona/1.html
+http://fizyka.pisz.pl/strona/4.html
+http://fizyka.pisz.pl/strona/7.html
 
-    float cX = abs(CircX - bird.x+GIL_SIZE/2);
-    float cY = abs(CircY - bird.y+GIL_SIZE/2);
+not bad… but i can see a few issues:
+- a minor issue would be that you are calling in main several functions like initAllegro, initGame, createEventQueue
+ and while it's good to have all this code separated nicely into couple of functions it's not good to expose them all
+  for the user - the user now must remember to call them in this partucular order and most likely will forget -
+   it'd be nice to add one public method in the class Game called just "init" which calls all these methods for
+    us or even better - just a constructor! you see, RAII and so on…
+- i see that "reallocAll" just destroys everything… shouldn't be that just a destructor?
+- method "solve" doesn't solve anything :v it's just a main loop - name it differently
+- I think that solve can be too long and could be splitted into smaller functions, for example a function for handling
+ trees and rendering logic should be separated from calculating positions and so on
+- these were minor issues but there is a big, most important issue: you should design your game code so that you could
+reuse it for bots! bot's won't look on nice graphics and probably won't even render it so the game logic should be
+completely separated from rendering… I propose such solution that you have separate class for game logic, it should
+check for collisions, calculate new bird position and so on
+and has following methods:
+- getCurrentBirdPosition - it returns just position, bots can use it for the input and rendering for the bird rendering
+- getTreesPosition - like before
+- update(double time) - updates the game, bots can use it for evaluation, rendering can use it for rendering the next
+frame
+- moveUp - moves bird up, and again rendering'd call it when user clicks, bots use it when they decide to move up
+- getScore - self explanatory
+and within this class the game logic is hidden, and it just presents a simple interface which is easy to use for both
+bots and rendering the game for the user
 
-    if (cX > (GIL_SIZE/2 + CIRC_RAD)) { return false; }
-    if (cY > (GIL_SIZE/2 + CIRC_RAD)) { return false; }
 
-    if (cX <= GIL_SIZE/2) { return true; }
-    if (cY <= GIL_SIZE/2) { return true; }
-
-    float cornerDistance_sq = (cX - GIL_SIZE/2)*(cX - GIL_SIZE/2) + (cY - GIL_SIZE/2)*(cY - GIL_SIZE/2);
-    return (cornerDistance_sq <= (CIRC_RAD*CIRC_RAD));
-}
-
-http://forum.warsztat.gd/index.php?topic=4606.0
-
-- z podbijaniem jest tak że ptak spada cały czas na dół ze stałą prędkością a ruch podbijający po prostu go podnosi
-w uproszczeniu
+- z podbijaniem jest tak że ptak spada cały czas na dół ze stałą prędkością a ruch podbijający po prostu go podnosi w uproszczeniu
 możesz się pobawić też w siły grawitacji :v
 czyli ptak ma przyspieszenie i podbijanie zmienia chwilowo przyspieszenie mocno do góry, bo zadziałala siła podbicia, a cały czas działa siła grawitacji w dół i wtedy to bedzie bardziej płynne
 
-między czasem jednej klatki a drugiej
-w kazdym razie jak masz już ten czas
-to załóżmy że drzewka na ekranie, a ptaszek w rzeczywistości porusza się 100px na sekundę w lewo
-v = s/t → s = v*t
-v to nasze 100px na sekunde (możesz poeksperymentować)
-t to nasz czas pomiędzy klatkami
-no to jak to pomnożysz to wyjdzie ci o ile pikseli masz teraz przesunąć wszystkie drzewa
-
-użyj al_get_timer_count i licz delte między tym a zapamiętanym poprzednim
-
-int64_t al_get_timer_count(const ALLEGRO_TIMER *timer)
-
-czyli ptak ma przyspieszenie i podbijanie zmienia chwilowo przyspieszenie mocno do góry, bo zadziałala siła podbicia, a cały czas działa siła grawitacji w dół i wtedy to bedzie bardziej płynne
-
-6. http://www.lessmilk.com/tutorial/flappy-bird-phaser-1
-7. http://www.instructables.com/id/Java-Game-Programming-Tutorial-Flappy-Bird-Redux/
 8. http://flappybird.io/
 
 TODO
-5. spadanie i podnoszenie sie do testow
-11. sila grawitacji
+11. sila grawitacji (linki na gorze)
+23. wznoszenie sie do poprawki
+24. poprawki wyzej
 
 DONE
+5. spadanie i podnoszenie sie do testow
 5.  sprzatanie kodu
 13. dodac wyswietlanie wyniku
 16. zmiany odleglosci miedzy drzewami
