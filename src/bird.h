@@ -1,7 +1,8 @@
 #ifndef BIRD_H
 #define BIRD_H
 
-struct Bird {
+class Bird {
+public:
   float x, y;
 };
 

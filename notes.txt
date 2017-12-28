@@ -1,7 +1,24 @@
-- część drzewa to jest to co ci mówiłam z tymi paskami i z tym rysunkiem co wysyłałam, czyli
-* rysujesz powtarzające się paski z pikseli
-* rysujesz prostokąty
-* możesz też zrobić obrazek drzewa wysokiego na cały ekran i pozwolić żeby część drzewa wyszła poza ekran
+bool Game::intersects(Bird& bird, float CircX, float CircY)
+{
+    float DeltaX = CircleX - Max(RectX, Min(CircleX, RectX + RectWidth));
+    float DeltaY = CircleY - Max(RectY, Min(CircleY, RectY + RectHeight));
+    return (DeltaX * DeltaX + DeltaY * DeltaY) < (CircleRadius * CircleRadius);
+
+    float cX = abs(CircX - bird.x+GIL_SIZE/2);
+    float cY = abs(CircY - bird.y+GIL_SIZE/2);
+
+    if (cX > (GIL_SIZE/2 + CIRC_RAD)) { return false; }
+    if (cY > (GIL_SIZE/2 + CIRC_RAD)) { return false; }
+
+    if (cX <= GIL_SIZE/2) { return true; }
+    if (cY <= GIL_SIZE/2) { return true; }
+
+    float cornerDistance_sq = (cX - GIL_SIZE/2)*(cX - GIL_SIZE/2) + (cY - GIL_SIZE/2)*(cY - GIL_SIZE/2);
+    return (cornerDistance_sq <= (CIRC_RAD*CIRC_RAD));
+}
+
+http://forum.warsztat.gd/index.php?topic=4606.0
+
 - z podbijaniem jest tak że ptak spada cały czas na dół ze stałą prędkością a ruch podbijający po prostu go podnosi
 w uproszczeniu
 możesz się pobawić też w siły grawitacji :v
@@ -20,3 +37,29 @@ użyj al_get_timer_count i licz delte między tym a zapamiętanym poprzednim
 int64_t al_get_timer_count(const ALLEGRO_TIMER *timer)
 
 czyli ptak ma przyspieszenie i podbijanie zmienia chwilowo przyspieszenie mocno do góry, bo zadziałala siła podbicia, a cały czas działa siła grawitacji w dół i wtedy to bedzie bardziej płynne
+
+6. http://www.lessmilk.com/tutorial/flappy-bird-phaser-1
+7. http://www.instructables.com/id/Java-Game-Programming-Tutorial-Flappy-Bird-Redux/
+8. http://flappybird.io/
+
+TODO
+5. spadanie i podnoszenie sie do testow
+11. sila grawitacji
+
+DONE
+5.  sprzatanie kodu
+13. dodac wyswietlanie wyniku
+16. zmiany odleglosci miedzy drzewami
+17. gra startuje po clicku
+18. zliczanie wyniku (po wspolrzednej X)
+20. kolizje rect vs rect
+21. sprawic zeby text nie znikal
+22. porzadna funkcja
+15. kolizje kolko prostokat
+12. dobor bird.y (albo dol albo gora) (byc moze rozwiaze poprzez nowe kolizje)
+
+https://yal.cc/rectangle-circle-intersection-test/
+
+http://www.yegor256.com/2014/09/16/getters-and-setters-are-evil.html
+
+//al_show_native_message_box(display, "YOU LOST!", "TRY AGAIN!", "Bird wyrżnął o coś!", NULL, ALLEGRO_MESSAGEBOX_WARN);
