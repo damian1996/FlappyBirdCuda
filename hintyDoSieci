@@ -1,0 +1,38 @@
+creating initial population randomly
+uczenie jak gra bedzie trwala
+natural evolution to the next improved population
+kazda populacja ma 10 units, random neural network
+bird uzywa wlasnej sieci neuronowej do wykonania akcja (yes/no)
+3 warstwy :
+1) input layer (2 neurons)
+2) hidden layer (6 neurons)
+3) output layer (1 neuron)
+
+W warstwie 1 mamy horizontal distance od ptaka do konca drzewa
+oraz height distance od ptaka do srodka miedzy drzewami
+I w warstwie 3 (flap if out>0.5)
+
+Fitness function do znalezienia najlepszych jednostek
+Fitness dla ptaka jest obliczany jak :
+przebyty dystans - dystans do najblizszej luki (drzew)
+Po smierci generacji wybieramy 4 najlepsze ptaki do hodowania nowej populacji
+poprzez uzycie operatorow genetycznego algo:
+1. selection
+2. crossover (krzyzowac sie)
+3. mutation
+
+AG
+jednostka jako string genów(zer i jedynek)
+
+START
+Generate the initial population
+Compute fitness
+REPEAT
+    Selection
+    Crossover
+    Mutation
+    Compute fitness
+UNTIL population has converged
+STOP
+
+https://towardsdatascience.com/introduction-to-genetic-algorithms-including-example-code-e396e98d8bf3
