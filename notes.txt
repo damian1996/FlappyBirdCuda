@@ -1,3 +1,14 @@
+dodac .gitignore
+makefile
+
+
+create a function which renders menu
+and a function which renders a bird with trees and so on (you should have one already)
+and where you do the rendering in the main loop
+just check what function you should use
+whether you are still on the menu or in the game
+similarly in the event handling code
+
 http://fizyka.pisz.pl/strona/1.html
 http://fizyka.pisz.pl/strona/4.html
 http://fizyka.pisz.pl/strona/7.html
@@ -5,9 +16,9 @@ http://fizyka.pisz.pl/strona/7.html
 not bad… but i can see a few issues:
 - a minor issue would be that you are calling in main several functions like initAllegro, initGame, createEventQueue
  and while it's good to have all this code separated nicely into couple of functions it's not good to expose them all
-  for the user - the user now must remember to call them in this partucular order and most likely will forget -
-   it'd be nice to add one public method in the class Game called just "init" which calls all these methods for
-    us or even better - just a constructor! you see, RAII and so on…
+ for the user - the user now must remember to call them in this partucular order and most likely will forget -
+ it'd be nice to add one public method in the class Game called just "init" which calls all these methods for
+ us or even better - just a constructor! you see, RAII and so on…
 - i see that "reallocAll" just destroys everything… shouldn't be that just a destructor?
 - method "solve" doesn't solve anything :v it's just a main loop - name it differently
 - I think that solve can be too long and could be splitted into smaller functions, for example a function for handling
