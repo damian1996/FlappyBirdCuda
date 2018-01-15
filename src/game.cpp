@@ -167,10 +167,16 @@ bool Game::collisionCheck(Bird& bird)
     // pnie
     float wspX = bird.x + GIL_SIZE;
     float wspY = bird.y + GIL_SIZE;
+    if(tree.x<wspX && tree.x+WIDTH_TREE>bird.x && tree.y>bird.y) // && 0<wspY
+      return true;
+    if(tree.x<wspX && tree.x+WIDTH_TREE>bird.x && tree.height2<wspY) // && SCREEN_H>gil[b].y
+      return true;
+      /*
     if(tree.x<wspX && tree.x+WIDTH_TREE>bird.x && 0<wspY && tree.y>bird.y)
       return true;
     if(tree.x<wspX && tree.x+WIDTH_TREE>bird.x && tree.height2<wspY && SCREEN_H>bird.y)
       return true;
+    */
     // okregi
     float middleX = tree.x+WIDTH_TREE/2;
     float middleY = tree.y+(2*CIRC_RAD)/3;
