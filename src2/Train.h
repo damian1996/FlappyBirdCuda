@@ -12,9 +12,7 @@ public:
   float fitCoefficients[UNITY_IN_TRAINING];
   int idForSortFits[UNITY_IN_TRAINING];
   std::vector<NeuralNetwork> training(int i);
-  float fitness_function();
   float crossover();
-  void mutation();
 };
 
 #endif

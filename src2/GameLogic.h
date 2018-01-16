@@ -15,7 +15,7 @@
 #include "Bot.h"
 using namespace std;
 
-class GameLogic {  
+class GameLogic {
 public:
   vector<Tree> list_trees;
   Bird gil[10];
@@ -30,7 +30,7 @@ public:
   Tree getTreePosition(int i);
   int getNumberOfTrees();
   void update(int i);
-  bool moveUp(int bird);
+  void moveUp(int bird);
   int getScore();
   void createTree(float x);
   char* getTextForResult(int res);

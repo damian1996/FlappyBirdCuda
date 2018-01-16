@@ -153,19 +153,17 @@ void GameRendering::startGame()
     else if(eve.type == ALLEGRO_EVENT_KEY_DOWN)
       if(eve.keyboard.keycode == ALLEGRO_KEY_SPACE)
         return;
-  }
+   }
 }
 
 void GameRendering::init() {
-   printf("MUJAJAJJAJAJJAJA\n");
    for(int i=0; i<NUMBER_DISPLAY_BOTS; i++)
       logic.gil[i].backInitialValues();
    logic.list_trees.clear();
    drawInitialBoard();
-   startGame();
-
-   // dolozyc zerowanie vectora drzewek oraz wyczyszczenie ptaszkow
-}
+   //al_start_timer(timer);
+ }
+ // dolozyc zerowanie vectora drzewek oraz wyczyszczenie ptaszkow
 
 void GameRendering::threadFunction() {
   logic.botToTrain.computeHiddenRounds();
@@ -174,12 +172,17 @@ void GameRendering::threadFunction() {
 
 void GameRendering::mainLoop()
 {
+  bool start = false;
   int round = 0;
   while(1)
   {
     switch(round) {
         case SHOW_MOVEMENT:
             init();
+            if(!start) {
+              startGame();
+              start = true;
+            }
             logic.gameScore = 0;
             while(1)
             {
@@ -246,7 +249,6 @@ void GameRendering::mainLoop()
                         al_flip_display();
                     }
                     else if(logic.allDead()==true){
-                      printf("Mehehehehe");
                       break;
                     }
                 }
@@ -258,9 +260,7 @@ void GameRendering::mainLoop()
         case HIDDEN_BOT_TRAIN:
           thread t(&Bot::computeHiddenRounds, logic.botToTrain);
           const char* res2 = "Chwilka postoju, trwa trening.";
-          al_draw_text(font2, al_map_rgb(0, 0, 0), 300, 250, 0, res2);
-          //al_show_native_message_box(display, "INFO", "Trwa trening. Efekty beda widoczne za chwile",
-          // "", NULL, ALLEGRO_MESSAGEBOX_WARN);
+          al_draw_text(font2, al_map_rgb(0, 0, 0), 200, 250, 0, res2);
           al_flip_display();
           t.join();
           round = SHOW_MOVEMENT;

@@ -22,13 +22,15 @@ void NeuralNetwork::randInitialNetworks()
     values[i] = 0.0;
     if(i<2)
     {
-      for(int j=0; j<6; j++)
+      for(int j=0; j<6; j++) {
         weights[i][j] =  dis(gen);
+      }
     }
     else if(i>=2 && i<8)
     {
       for(int j=0; j<1; j++)
         weights[i][j] =  dis(gen);
+
     }
   }
 }

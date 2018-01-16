@@ -26,26 +26,26 @@ std::vector<NeuralNetwork> Train::training(int rounds)
     cuMemAlloc(&arrOfWeights, UNITY_IN_TRAINING*54*sizeof(float));
     cuMemAlloc(&fitness, UNITY_IN_TRAINING*sizeof(float));
 
-    for(int l=0; l<HIDDEN_ROUNDS; l++)
+
+    for(int i=0; i<UNITY_IN_TRAINING; i++) // aktualne wagi
     {
-        for(int i=0; i<UNITY_IN_TRAINING; i++)
+        for(int j=0; j<9; j++)
         {
-            for(int j=0; j<9; j++)
+            for(int k=0; k<6; k++)
             {
-                for(int k=0; k<6; k++)
-                {
-                  arr[i*sizeNeuralNet+j*edgesForNeuron+k] = trainNet[i].weights[j][k];
-                }
+              arr[i*sizeNeuralNet+j*edgesForNeuron+k] = trainNet[i].weights[j][k];
             }
         }
+    }
+    cuMemcpyHtoD(arrOfWeights, arr, UNITY_IN_TRAINING*54*sizeof(float));
+    cuMemcpyHtoD(fitness, fitCoefficients, UNITY_IN_TRAINING*sizeof(float));
 
-        cuMemcpyHtoD(arrOfWeights, arr, UNITY_IN_TRAINING*54*sizeof(float));
-        cuMemcpyHtoD(fitness, fitCoefficients, UNITY_IN_TRAINING*sizeof(float));
+    for(int l=0; l<HIDDEN_ROUNDS; l++)
+    {
 
-        void* argsTB[4] = {&arrOfWeights, &fitness}; // ewentualnie stale
-        cuLaunchKernel(trainBirds, UNITY_IN_TRAINING, 1, 1, 1024, 1, 1, 0, 0, argsTB, 0);
+        void* argsT[4] = {&arrOfWeights, &fitness}; // ewentualnie stale
+        cuLaunchKernel(trainBirds, UNITY_IN_TRAINING, 1, 1, 1024, 1, 1, 0, 0, argsT, 0);
 
-        cuMemcpyDtoH(arr, arrOfWeights, UNITY_IN_TRAINING*54*sizeof(float));
         cuMemcpyDtoH(fitCoefficients, fitness, UNITY_IN_TRAINING*sizeof(float));
 
         std::vector< std::pair<float, int> > coefToSort;
@@ -56,17 +56,15 @@ std::vector<NeuralNetwork> Train::training(int rounds)
         beasts.clear();
         for(int j=0, i=UNITY_IN_TRAINING-j; j<=9; j++)
           beasts.push_back(trainNet[coefToSort[i].second]);
+
+        //void* argsM[4] = {&arrOfWeights, &fitness}; // ewentualnie stale
+        //cuLaunchKernel(mutation, UNITY_IN_TRAINING, 1, 1, 1024, 1, 1, 0, 0, argsM, 0);
     }
 
     return beasts;
 }
+//cuMemcpyDtoH(arr, arrOfWeights, UNITY_IN_TRAINING*54*sizeof(float));
 
-float Train::fitness_function() {
-  return 0.0f;
-}
 float Train::crossover() {
   return 0.0f;
-}
-void Train::mutation() {
-
 }

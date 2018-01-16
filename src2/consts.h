@@ -21,5 +21,6 @@ const int HIDDEN_BOT_TRAIN = 1;
 const int END_OF_COMPUTATIONS = 2;
 const int UNITY_IN_TRAINING = 1024;
 const int HIDDEN_ROUNDS = 20;
+const float EPS = 0.2;
 
 #endif

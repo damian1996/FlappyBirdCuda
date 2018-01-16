@@ -61,7 +61,7 @@ void GameLogic::update(int i) {
   }
 }
 
-bool GameLogic::moveUp(int b) {
+void GameLogic::moveUp(int b) {
   gil[b].moveUp = true;
 }
 

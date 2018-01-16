@@ -14,5 +14,9 @@ const float TIME_FALL_BIRD = 4.0;
 const float BIRD_IMPR = 50.0;
 const float MOVE_PIXS_ON_SEC = 100.0;
 const float BIRD_FALL_AFTER_HIT = 5.0;
+const float FIRST_TREE = 400.0;
+const float SECOND_TREE = 650.0;
+const float THIRD_TREE = 900.0;
+
 
 #endif
