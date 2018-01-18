@@ -7,7 +7,6 @@ GameRendering::GameRendering()
   createEventQueue();
 }
 
-
 GameRendering::~GameRendering()
 {
   for(int i=0; i<NUMBER_DISPLAY_BOTS; i++)
@@ -53,7 +52,6 @@ void GameRendering::initGameElements()
 {
   font = al_load_font("../out/arial.ttf",24,0);
   font2 = al_load_font("../out/arial.ttf",50,0);
-  //font = al_create_builtin_font();
 
   timer = al_create_timer(1.0 / FPS);
   if(!timer) {
@@ -161,9 +159,7 @@ void GameRendering::init() {
       logic.gil[i].backInitialValues();
    logic.list_trees.clear();
    drawInitialBoard();
-   //al_start_timer(timer);
  }
- // dolozyc zerowanie vectora drzewek oraz wyczyszczenie ptaszkow
 
 void GameRendering::threadFunction() {
   logic.botToTrain.computeHiddenRounds();
@@ -207,17 +203,15 @@ void GameRendering::mainLoop()
                           float horizontal = logic.list_trees[idx].x+WIDTH_TREE-logic.gil[i].x;
                           float heighDiff = ((logic.list_trees[idx].y + logic.list_trees[idx].height2)/2) - logic.gil[i].y;
                           float val = logic.botToTrain.visibleNets[i].sigmoid(horizontal, heighDiff);
+                          if(i==8)
+                          printf("%d %f\n", i, val);
                           if(val>=0) logic.gil[i].moveUp = true;
                           else logic.gil[i].moveUp = false;
                           //logic.moveUp(i); // 0.5
-                          logic.update(i);
-                          // to samo co na cudzie
                       }
                     }
                     for(int i=0; i<NUMBER_DISPLAY_BOTS; i++) {
-                      //if(logic.gil[i].active)
                        logic.gil[i].active = logic.collisionCheck(i);
-                      //printf("aha.. %d\n", logic.gil[i].active);
                     }
                 }
 
@@ -228,7 +222,6 @@ void GameRendering::mainLoop()
                 }
                 if(al_is_event_queue_empty(event_queue)) {
                     if(logic.allDead()==false) {
-                        //printf("Huh?");
                         if(logic.list_trees[0].x + WIDTH_TREE < 0)
                            logic.list_trees.erase(logic.list_trees.begin());
                         al_clear_to_color(al_map_rgb(50,100,150));
@@ -258,11 +251,12 @@ void GameRendering::mainLoop()
             round = HIDDEN_BOT_TRAIN;
             break;
         case HIDDEN_BOT_TRAIN:
-          thread t(&Bot::computeHiddenRounds, logic.botToTrain);
+          /*thread t(&Bot::computeHiddenRounds, logic.botToTrain);
+          t.join();*/
           const char* res2 = "Chwilka postoju, trwa trening.";
           al_draw_text(font2, al_map_rgb(0, 0, 0), 200, 250, 0, res2);
           al_flip_display();
-          t.join();
+          logic.botToTrain.computeHiddenRounds();
           round = SHOW_MOVEMENT;
           break;
     }

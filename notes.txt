@@ -8,6 +8,32 @@ http://docs.nvidia.com/cuda/thrust/index.html
 https://www.cse.iitb.ac.in/~aviral/reportFlappy.pdf
 
 
+extern "C" {
+	__device__
+	void randomizerInt(float& toRand, int interval)
+	{
+		int thid = blockDim.x*blockIdx.x + threadIdx.x;
+    unsigned int m_w = thid;
+    unsigned int m_z = 40;
+
+		m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+    m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+		toRand = ((m_z << 16) + m_w)%interval;
+	}
+}
+
+extern "C" {
+	__device__
+		void randomizerFloat(float& toRand, float l, float r)
+		{
+			int rand_max = 32767;
+			float randomVarb, tmp;
+			randomizerInt(tmp, rand_max);
+			randomVarb = (float) tmp;
+			toRand =  ((r - l) * (randomVarb / rand_max)) + l;
+		}
+}
+
 
 
 

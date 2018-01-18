@@ -4,29 +4,33 @@
 #include <curand_kernel.h>
 // https://stackoverflow.com/questions/8012304/why-defining-class-headers-without-cuda-device-attribute-works-c
 
-__constant__ float FIRST_TREE = 400.0;
-__constant__ float SECOND_TREE = 650.0;
-__constant__ float THIRD_TREE = 900.0;
-
-
+extern "C" {
+	__global__
+	void Init(curandState *states) {
+		int thid = blockIdx.x*blockDim.x+threadIdx.x;
+		curand_init(clock64(), thid, 0, &states[thid]);
+		__syncthreads();
+	}
+}
 
 extern "C" {
 	__device__
-	void randInt(float& toRand, int interval) {
+	void randInt(float& toRand, int interval, curandState* state) {
 				int thid = blockIdx.x*blockDim.x+threadIdx.x;
-				curandState state;
-				curand_init(666, thid, 0, &state);
-				toRand = curand(&state)%interval;
+				int tmp = curand(state);// %interval;
+				if(tmp<0) tmp = -tmp;
+				toRand = (tmp)%interval;
 	 }
 }
 
 extern "C" {
 	__device__
-	void randFloat(float& toRand, int interval) {
+	void randFloat(float& toRand, float l, float r, curandState* state) {
 				int thid = blockIdx.x*blockDim.x+threadIdx.x;
-				curandState state;
-				curand_init(666, thid, 0, &state);
-				toRand = curand(&state)%interval;
+				int rand_max = 32767;
+				float randomVarb, tmp;
+				randInt(randomVarb, rand_max, state);
+				toRand =  ((r - l) * (randomVarb / rand_max)) + l;
 	 }
 }
 
@@ -60,18 +64,23 @@ public:
     add = false;
   }
 	__device__
-  void heights() {
+  void heights(curandState* state) {
 		h1 = 0.0;
-		randInt(h1, 150);
+		randInt(h1, 150, state);
     h1 = h1 + 100.0;
     h2 = h1 + DIFF_BETWEEN_H;
   }
 };
 
 struct List {
+public:
 	Tree trees[5];
-	int el = 0;
-	int size = 0;
+	int el, size;
+	__device__
+	List() {
+		el = 0;
+		size = 0;
+	}
 	__device__
 	void addTree(Tree t) {
 		trees[el].x = t.x;
@@ -84,7 +93,10 @@ struct List {
 	__device__
 	void removeFromStart() {
 		for(int i=1; i<size; i++) {
-			trees[i-1] = trees[i]; // czy aby na pewno to dziala jak nalezy?
+			trees[i-1].x = trees[i].x; // czy aby na pewno to dziala jak nalezy?
+			trees[i-1].h1 = trees[i].h1;
+			trees[i-1].h2 = trees[i].h2;
+			trees[i-1].add = trees[i].add;
 			el--;
 			size--;
 		}
@@ -93,23 +105,18 @@ struct List {
 
 extern "C" {
 	__device__
-	 void fitness_function(int idx, float res) { // return float
-
+		void fitness_function(List& list, int gameScore, Bird& bird, float res) { // return float
+				 int idx = list.trees[0].x > bird.x ? 0 : 1;
+				 res = DIST_BET_TWO*gameScore + 200 + 250 - (list.trees[idx].x - bird.x);
+		// fitness = total travelled distance - distance to the closest gap
 	 }
 }
 
 extern "C" {
 	__device__
-   	void Mutation() {
-
-		}
-}
-
-extern "C" {
-	__device__
-	void droppedTooLow(Bird& bird, bool r) { // bool
-	  if(bird.y>=SCREEN_H) r = false;
-	  else r = true;
+	void droppedTooLow(Bird& bird) { // bool
+	  if(bird.y>=SCREEN_H) bird.active = false;
+	  else bird.active = true;
 	}
 }
 
@@ -124,18 +131,18 @@ extern "C" {
 
 extern "C" {
 	__device__
-		void collisionCheck(List& list, Bird& b, bool r) { // bool
+		void collisionCheck(List& list, Bird& b) { // bool
 			bool res;
 			int siz = list.size;
 			for(int i=0; i<siz; i++) {
 	      float wspX = b.x + GIL_SIZE;
 	      float wspY = b.y + GIL_SIZE;
 	      if(list.trees[i].x<wspX && list.trees[i].x+WIDTH_TREE>b.x && list.trees[i].h1>b.y) { // && 0<wspY
-					r = false;
+					b.active = false;
 					return;
 				}
 	      if(list.trees[i].x<wspX && list.trees[i].x+WIDTH_TREE>b.x && list.trees[i].h2<wspY) { // && SCREEN_H>gil[b].y
-					r = false;
+					b.active = false;
 					return;
 				}
 
@@ -143,17 +150,17 @@ extern "C" {
 	      float middleY = list.trees[i].h1+(2*CIRC_RAD)/3;
 				intersects(b, middleX, middleY, res);
 	      if(res) {
-					r = false;
+					b.active = false;
 					return;
 				}
 				middleY = list.trees[i].h2-(2*CIRC_RAD)/3;
 	      intersects(b, middleX, middleY, res);
 	      if(res) {
-					r = false;
+					b.active = false;
 					return;
 				}
 	    }
-	    r = true;
+	    b.active = true;
 		}
 }
 
@@ -171,7 +178,7 @@ extern "C" {
 			t.x = list.trees[i].x;
 			t.h1 = list.trees[i].h1;
 			t.h2 = list.trees[i].h2;
-			// add?
+			t.add = list.trees[i].add;
 		}
 }
 
@@ -196,18 +203,11 @@ extern "C" {
 
 extern "C" {
 	__device__
-		void moveUp(Bird b) {
-		  b.moveUp = true;
-		}
-}
-
-extern "C" {
-	__device__
-	void createTree(List& list ,float i) {
+	void createTree(List& list, float i, curandState* state) {
 		{
 			Tree t;
 			t.x = i;
-		  t.heights();
+		  t.heights(state);
 		  list.addTree(t);
 		}
 	}
@@ -215,100 +215,102 @@ extern "C" {
 
 extern "C" {
 	__device__
-		void treeToRemove(List& list, Bird& b, bool r, int gameScore)
+		void treeToRemove(List& list, Bird& b, int gameScore)
 		{
         if(!list.trees[0].add && b.x>list.trees[0].x+WIDTH_TREE)
         {
            list.trees[0].add = true;
            gameScore++;
-           r = true;
         }
-				else
-					 r = false;
 		}
 }
 
 extern "C" {
 	__device__
-		void sigmoid(float hor, float hei, float& res) {
-		  /*
+		void sigmoid(float* weights, float hor, float hei, float& res) {
+			int thid = threadIdx.x + blockIdx.x*blockDim.x;
+			float values[9];
+			int offset = thid*WEIGHTS_SIZE;
 			for(int i=0; i<9; i++) values[i] = 0;
-		  values[0] = 1/(1 + exp(-hor-bias));
-		  values[1] = 1/(1 + exp(-hei-bias));
-		  for(int i=0; i<2; i++){
-		    for(int j=0; j<6; j++){
-		      values[j+2] += weights[i][j]*values[i];
+		  values[0] = 1/(1 + exp(-hor-1));
+		  values[1] = 1/(1 + exp(-hei-1));
+		  for(int i=0; i<2; i++) {
+		    for(int j=0; j<6; j++) {
+		      values[j+2] += weights[offset+i*6+j]*values[i];
 		    }
 		  }
 		  for(int i=2; i<8; i++) {
-		    values[i] = 1/(1 + exp(-values[i]-bias));
-		    values[8] += weights[i][0]*values[i];
+		    values[i] = 1/(1 + exp(-values[i]-1));
+		    values[8] +=  weights[offset+i*6+0]*values[i];
 		  }
-		  values[8] = 1/(1 + exp(-values[8]-bias));
-		  return values[8];
-			*/
+			res = 1/(1 + exp(-values[8]-0.5));
 		}
 }
 
 extern "C" {
 	__global__
-   	void TrainBirds(float* weights, float* fitness) {
+   	void TrainBirds(float* weights, float* fitness, curandState* states) {
+			int thid = blockIdx.x*blockDim.x+threadIdx.x;
 			int gameScore = 0;
 			List list;
-			createTree(list, FIRST_TREE);
-			createTree(list, SECOND_TREE);
-			createTree(list, THIRD_TREE);
+			createTree(list, FIRST_TREE, &states[thid]);
+			createTree(list, SECOND_TREE, &states[thid]);
+			createTree(list, THIRD_TREE, &states[thid]);
 			Bird bird;
-		}
+			while(1) {
+				treeToRemove(list, bird, gameScore);
+				float decr = SCREEN_H/(FPS*TIME_FALL_BIRD);
+				for(int i=0; i<list.size; i++)
+					list.trees[i].x -= MOVE_PIXS_ON_SEC/FPS;
+				if(SCREEN_W - list.trees[list.size-1].x >= DIST_BET_TWO) {
+					 createTree(list, list.trees[list.size-1].x + DIST_BET_TWO, &states[thid]);
+				}
+				if(bird.active) {
+					int idx = list.trees[0].x > bird.x ? 0 : 1;
+					float horizontal = list.trees[idx].x + WIDTH_TREE - bird.x;
+					float heighDiff = ((list.trees[idx].h1 + list.trees[idx].h2)/2) - bird.y;
+					float val = 0.0;
+				  sigmoid(weights, horizontal, heighDiff, val);
+					//if(thid<10) {
+						//printf("%d %f\n", thid, val);
+				  //}
+					if(val>0.5) bird.moveUp = true;
+					else bird.moveUp = false;
+				}
+				collisionCheck(list, bird);
+				if(bird.active)
+					droppedTooLow(bird);
+				if(bird.active) {
+						if(list.trees[0].x + WIDTH_TREE < 0) {
+							list.removeFromStart();
+						}
+						if(bird.active)
+							update(bird);
+				} else {
+					break;
+				}
+			}
+			float res;
+			fitness_function(list, gameScore, bird, res);
+			fitness[thid] = res;
+			__syncthreads();
+	 }
 }
 
-				// vector drzew + inicjalizacja (3 poczatkowe drzewka oraz ptaszek)
-				/*while(1)
-				{
-						treeToRemove();
-
-						float decr = SCREEN_H/(FPS*TIME_FALL_BIRD);
-						//for(auto& it : list_trees) // przesuniecie drzew
-							//it.x -= MOVE_PIXS_ON_SEC/FPS;
-						if(SCREEN_W - list_trees[list_trees.size()-1].x >= DIST_BET_TWO) {
-							 createTree(list_trees[list_trees.size()-1].x + DIST_BET_TWO);
+extern "C" {
+	__global__
+   	void Mutation(float* weights, float* crosses, curandState *states) {
+				int thid = blockDim.x*blockIdx.x + threadIdx.x;
+				int offset = thid*WEIGHTS_SIZE;
+				int ms = thid/NMB_CROSSES;
+				int off_crs = ms*WEIGHTS_SIZE;
+				for(int i=0; i<9; i++) {
+						for(int j=0; j<6; j++) {
+							float tmp, prev = crosses[off_crs+i*6+j];
+							randFloat(tmp, prev-EPS, prev+EPS, &states[thid]);
+							weights[offset + i*6 + j] = tmp;
 						}
-						for(int i=0; i<NUMBER_DISPLAY_BOTS; i++) {
-							if(gil[i].active) {
-									int idx = list_trees[0].x > gil[i].x ? 0 : 1;
-									float horizontal = list_trees[idx].x+WIDTH_TREE-gil[i].x;
-									float heighDiff = ((list_trees[idx].y + list_trees[idx].height2)/2) - gil[i].y;
-									float val = botToTrain.visibleNets[i].sigmoid(horizontal, heighDiff);
-									if(val>=0) gil[i].moveUp = true;
-									else gil[i].moveUp = false;
-									//moveUp(i); // 0.5
-									update(i);
-									// to samo co na cudzie
-							}
-						}
-						for(int i=0; i<NUMBER_DISPLAY_BOTS; i++) {
-							//if(gil[i].active)
-							 gil[i].active = collisionCheck(i);
-							//printf("aha.. %d\n", gil[i].active);
-						}
-
-						for(int i=0; i<NUMBER_DISPLAY_BOTS; i++)
-						{
-							if(gil[i].active==true)
-								gil[i].active = droppedTooLow(i);
-						}
-								if(allDead()==false) {
-										//printf("Huh?");
-										if(list_trees[0].x + WIDTH_TREE < 0)
-											 list_trees.erase(list_trees.begin());
-
-										for(int i=0; i<NUMBER_DISPLAY_BOTS; i++) {
-												if(gil[i].active) {
-													 update(i);
-												}
-										}
-								}
-								else if(allDead()==true){
-									break;
-								}
-						}*/
+				}
+				__syncthreads();
+		}
+}

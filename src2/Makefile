@@ -15,7 +15,7 @@ LIB_CUDA := -L/usr/lib/nvidia-current -lcuda
 
 # Options
 NVCCOPTIONS = -ptx -Wno-deprecated-gpu-targets -std=c++14
-CXXOPTIONS = -std=c++14 -g -O2 -Wall
+CXXOPTIONS = -std=c++14 -g -Wall
 
 # Common flags
 COMMONFLAGS += $(INCLUDES)

@@ -22,5 +22,10 @@ const int END_OF_COMPUTATIONS = 2;
 const int UNITY_IN_TRAINING = 1024;
 const int HIDDEN_ROUNDS = 20;
 const float EPS = 0.2;
+const float FIRST_TREE = 400.0;
+const float SECOND_TREE = 650.0;
+const float THIRD_TREE = 900.0;
+const int WEIGHTS_SIZE = 54;
+const int NMB_CROSSES = 16;
 
 #endif
