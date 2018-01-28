@@ -1,15 +1,12 @@
 #include "Train.h"
 
 Train::Train() {
-  //trainNet = malloc(sizeof(NeuralNetwork))
-  beasts.resize(10);
   initCuda();
   allocElements();
   initRandom();
 }
 
-Train::~Train()
-{
+Train::~Train() {
   cuMemFree(randomStates);
   cuMemFree(toMutation);
   cuMemFree(fitness);
@@ -110,83 +107,112 @@ void Train::printErrors(CUresult r) {
   printf("%s \n", errorDescription);
 }
 
-std::vector<NeuralNetwork> Train::training(int rounds)
-{
-    for(int i=0; i<UNITY_IN_TRAINING; i++) // aktualne wagi
-    {
-        fitCoefficients[i] = 0;
-        for(int j=0; j<9; j++)
-        {
-            for(int k=0; k<6; k++)
-            {
-              arr[i*sizeNeuralNet+j*edgesForNeuron+k] = trainNet[i].weights[j][k];
-            }
+void Train::training(int rounds) {
+    if(trainPart==0) {
+        int ofSet = 0;
+        for(int i=0; i<UNITY_IN_TRAINING; i++) {
+            fitCoefficients[i] = 0;
+            ofSet = i*sizeNeuralNet;
+            for(int j=0; j<9; j++)
+                for(int k=0; k<6; k++)
+                    arr[ofSet+j*edgesForNeuron+k] = trainNet[i].weights[j][k];
+        }
+        for(int i=0; i<10; i++) {
+            beasts.push_back(trainNet[i]);
         }
     }
 
     CUresult r;
+    trainPart++;
+
     for(int l=0; l<HIDDEN_ROUNDS; l++)
     {
         // czy musze za kazdym razem?
         r = cuMemcpyHtoD(arrOfWeights, arr, UNITY_IN_TRAINING*sizeNeuralNet*sizeof(float));
         if (r != CUDA_SUCCESS){
-            printf("cuMemcpyHtoD weights error\n");
+            printf("cuMemcpyHtoD 1 weights error\n");
             printErrors(r);
         }
+
         r = cuMemcpyHtoD(fitness, fitCoefficients, UNITY_IN_TRAINING*sizeof(float));
         if (r != CUDA_SUCCESS){
-            printf("cuMemcpyHtoD fitness error\n");
+            printf("cuMemcpyHtoD 1 fitness error\n");
             printErrors(r);
         }
+
         void* argsT[3] = {&arrOfWeights, &fitness, &randomStates}; // ewentualnie stale
-        cuLaunchKernel(trainBirds, blocks_x, 1, 1, threads_block, 1, 1, 0, 0, argsT, 0);
+        r = cuLaunchKernel(trainBirds, blocks_x, 1, 1, threads_block, 1, 1, 0, 0, argsT, 0);
+        if (r != CUDA_SUCCESS){
+            printf("TrainBirds kernel yell on me ;_;\n");
+            printErrors(r);
+        }
 
         r = cuCtxSynchronize();
         if (r != CUDA_SUCCESS){
-            printf("Ctx Synchronize error\n");
+            printf("Ctx Synchronize 2 error\n");
             printErrors(r);
         }
 
         r = cuMemcpyDtoH(fitCoefficients, fitness, UNITY_IN_TRAINING*sizeof(float));
         if (r != CUDA_SUCCESS){
-            printf("cuMemcpyDtoH fitness error\n");
+            printf("cuMemcpyDtoH fitness 2 error\n");
             printErrors(r);
         }
+
         std::vector< std::pair<float, int> > coefToSort;
         for(int i=0; i<UNITY_IN_TRAINING; i++) {
             coefToSort.push_back(std::make_pair(fitCoefficients[i], i));
         }
 
         std::sort(coefToSort.begin(), coefToSort.end());
-        beasts.clear();
-        for(int j=0, i=UNITY_IN_TRAINING-j-1; j<=9; j++){
-          beasts.push_back(trainNet[coefToSort[i].second]);
+
+        //printf("MIN DIST %f\n", coefToSort[0].first);
+        //printf("MAX DIST %f\n", coefToSort[UNITY_IN_TRAINING-1].first);
+
+        for(int j=0, i=UNITY_IN_TRAINING-1; j<=9; j++, i--) {
+          int offset = coefToSort[i].second * sizeNeuralNet;
+          for(int l=0; l<9; l++)
+              for(int k=0; k<6; k++)
+                beasts[j].weights[l][k] = arr[offset + l*edgesForNeuron + k];
         }
-        crossover(cross, beasts);
+
+        crossover();
         r = cuMemcpyHtoD(toMutation, cross, nmbOfCrosses*sizeNeuralNet*sizeof(float));
         if (r != CUDA_SUCCESS){
-            printf("cuMemcpyDtoH mutation error\n");
+            printf("cuMemcpyDtoH mutation 1 error\n");
             printErrors(r);
         }
+        /*
+        for(int i=0; i<9; i++) {
+            for(int j=0; j<6; j++) {
+              printf("%f ", beasts[0].weights[i][j]);
+            }
+            printf("\n");
+        }
+        printf("\n");
+        */
         void* argsM[3] = {&arrOfWeights, &toMutation, &randomStates}; // ewentualnie stale
-        cuLaunchKernel(mutation, blocks_x, 1, 1, threads_block, 1, 1, 0, 0, argsM, 0);
+        r = cuLaunchKernel(mutation, blocks_x, 1, 1, threads_block, 1, 1, 0, 0, argsM, 0);
+        if (r != CUDA_SUCCESS){
+            printf("mutation kernel error\n");
+            printErrors(r);
+        }
 
         r = cuCtxSynchronize();
         if (r != CUDA_SUCCESS){
-            printf("Ctx Synchronize error\n");
+            printf("Ctx Synchronize 3 error\n");
             printErrors(r);
         }
 
         r = cuMemcpyDtoH(arr, arrOfWeights, UNITY_IN_TRAINING*54*sizeof(float));
         if (r != CUDA_SUCCESS){
-            printf("cuMemcpyHtoD weights error\n");
+            printf("cuMemcpyHtoD 2 weights error\n");
             printErrors(r);
         }
     }
-    return beasts;
 }
 
-void Train::crossover(float* cross, std::vector<NeuralNetwork> b) {
+void Train::crossover() {
   // 2X 1x2, 1x3, 1x4, 2X3, 3X4, 2X4, 1x5, 2x5
   for(int i=0, p=nmbOfCrosses-1; i<nmbOfCrosses/2; i++, p--)
   {
@@ -205,19 +231,10 @@ void Train::crossover(float* cross, std::vector<NeuralNetwork> b) {
     }
     for(int k=0; k<9; k++) {
       for(int j=0; j<6; j++) {
-        float tmp = (b[c1].weights[k][j] + b[c1].weights[k][j])/2;
+        float tmp = (beasts[c1].weights[k][j] + beasts[c1].weights[k][j])/2;
         cross[i*54 + k*6 + j] = tmp;
         cross[p*54 + k*6 + j] = tmp;
       }
     }
-    /*for(int i=0; i<16; i++) {
-      for(int k=0; k<9; k++) {
-        for(int j=0; j<6; j++) {
-          printf("%f ", cross[i*54 + k*6 + j]);
-        }
-        printf("\n");
-      }
-      printf("\n");
-    }*/
   }
 }

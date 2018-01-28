@@ -14,7 +14,7 @@ LIB_ALLEGRO := -lallegro -lallegro_main -lallegro_acodec -lallegro_audio -lalleg
 LIB_CUDA := -L/usr/lib/nvidia-current -lcuda
 
 # Options
-NVCCOPTIONS = -ptx -Wno-deprecated-gpu-targets -std=c++14
+NVCCOPTIONS = -ptx -Wno-deprecated-gpu-targets -std=c++14 -g --device-debug --generate-line-info
 CXXOPTIONS = -std=c++14 -g -Wall
 
 # Common flags

@@ -11,7 +11,7 @@
 class Train {
 public:
   int nmbOfCrosses = 16, sizeNeuralNet = 54;
-  int numberOfNeurons = 9, edgesForNeuron = 6;
+  int numberOfNeurons = 9, edgesForNeuron = 6, trainPart = 0;
   int threads_block = 1024, blocks_x = (UNITY_IN_TRAINING+1023)/threads_block;
   CUdevice cuDevice;
   CUcontext cuContext;
@@ -31,8 +31,8 @@ public:
   void allocElements();
   void initRandom();
   void printErrors(CUresult r);
-  std::vector<NeuralNetwork> training(int i);
-  void crossover(float* arr, std::vector<NeuralNetwork> b);
+  void training(int i);
+  void crossover();
 };
 
 #endif

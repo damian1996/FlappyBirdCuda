@@ -17,7 +17,6 @@ public:
    float values[9];
    float distAfterTick = MOVE_PIXS_ON_SEC/FPS;
    NeuralNetwork();
-   NeuralNetwork operator=(const NeuralNetwork&);
    void randInitialNetworks();
    float sigmoid(float inp1, float inp2);
 };

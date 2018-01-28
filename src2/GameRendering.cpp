@@ -165,7 +165,6 @@ void GameRendering::threadFunction() {
   logic.botToTrain.computeHiddenRounds();
 }
 
-
 void GameRendering::mainLoop()
 {
   bool start = false;
@@ -175,6 +174,14 @@ void GameRendering::mainLoop()
     switch(round) {
         case SHOW_MOVEMENT:
             init();
+
+            for(int i=0; i<NUMBER_DISPLAY_BOTS; i++) {
+              if(i < NUMBER_DISPLAY_BOTS/2)
+                logic.gil[i].y -= i*15.0;
+              else
+                logic.gil[i].y += (i - NUMBER_DISPLAY_BOTS/2)*15.0;
+            }
+
             if(!start) {
               startGame();
               start = true;
@@ -202,12 +209,10 @@ void GameRendering::mainLoop()
                           int idx = logic.list_trees[0].x > logic.gil[i].x ? 0 : 1;
                           float horizontal = logic.list_trees[idx].x+WIDTH_TREE-logic.gil[i].x;
                           float heighDiff = ((logic.list_trees[idx].y + logic.list_trees[idx].height2)/2) - logic.gil[i].y;
+                          //if(heighDiff<0) heighDiff = -heighDiff;
                           float val = logic.botToTrain.visibleNets[i].sigmoid(horizontal, heighDiff);
-                          if(i==8)
-                          printf("%d %f\n", i, val);
-                          if(val>=0) logic.gil[i].moveUp = true;
+                          if(val>=0.5) logic.gil[i].moveUp = true;
                           else logic.gil[i].moveUp = false;
-                          //logic.moveUp(i); // 0.5
                       }
                     }
                     for(int i=0; i<NUMBER_DISPLAY_BOTS; i++) {
@@ -251,8 +256,6 @@ void GameRendering::mainLoop()
             round = HIDDEN_BOT_TRAIN;
             break;
         case HIDDEN_BOT_TRAIN:
-          /*thread t(&Bot::computeHiddenRounds, logic.botToTrain);
-          t.join();*/
           const char* res2 = "Chwilka postoju, trwa trening.";
           al_draw_text(font2, al_map_rgb(0, 0, 0), 200, 250, 0, res2);
           al_flip_display();

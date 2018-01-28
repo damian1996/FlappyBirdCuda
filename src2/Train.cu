@@ -1,7 +1,6 @@
 #include "consts.h"
-#include <thrust/device_vector.h>
-#include <vector>
 #include <curand_kernel.h>
+#include <cmath>
 // https://stackoverflow.com/questions/8012304/why-defining-class-headers-without-cuda-device-attribute-works-c
 
 extern "C" {
@@ -74,21 +73,18 @@ public:
 
 struct List {
 public:
-	Tree trees[5];
-	int el, size;
+	Tree trees[6];
+	int size;
 	__device__
 	List() {
-		el = 0;
 		size = 0;
 	}
 	__device__
 	void addTree(Tree t) {
-		trees[el].x = t.x;
-		trees[el].h1 = t.h1;
-		trees[el].h2 = t.h2;
-		trees[el].add = t.add;
-		el++;
-		size += 1;
+		trees[size].x = t.x;
+		trees[size].h1 = t.h1;
+		trees[size].h2 = t.h2;
+		trees[size++].add = t.add;
 	}
 	__device__
 	void removeFromStart() {
@@ -97,17 +93,17 @@ public:
 			trees[i-1].h1 = trees[i].h1;
 			trees[i-1].h2 = trees[i].h2;
 			trees[i-1].add = trees[i].add;
-			el--;
-			size--;
 		}
+		size--;
 	}
 };
 
 extern "C" {
-	__device__
-		void fitness_function(List& list, int gameScore, Bird& bird, float res) { // return float
-				 int idx = list.trees[0].x > bird.x ? 0 : 1;
-				 res = DIST_BET_TWO*gameScore + 200 + 250 - (list.trees[idx].x - bird.x);
+	 __device__
+		void fitness_function(List& list, int gameScore, Bird& bird, float& res) { // return float
+				 int idx = (list.trees[0].x > bird.x) ? 0 : 1;
+				 res = DIST_BET_TWO*gameScore + 200 + DIST_BET_TWO - (list.trees[idx].x - bird.x);
+				 int thid = blockIdx.x*blockDim.x+threadIdx.x;
 		// fitness = total travelled distance - distance to the closest gap
 	 }
 }
@@ -217,7 +213,7 @@ extern "C" {
 	__device__
 		void treeToRemove(List& list, Bird& b, int gameScore)
 		{
-        if(!list.trees[0].add && b.x>list.trees[0].x+WIDTH_TREE)
+        if(!list.trees[0].add && b.x>(list.trees[0].x+WIDTH_TREE))
         {
            list.trees[0].add = true;
            gameScore++;
@@ -227,23 +223,28 @@ extern "C" {
 
 extern "C" {
 	__device__
-		void sigmoid(float* weights, float hor, float hei, float& res) {
-			int thid = threadIdx.x + blockIdx.x*blockDim.x;
+		void sigmoid(float* weights, float hor, float hei, float* res) {
+			int thid = blockIdx.x*blockDim.x+threadIdx.x;
 			float values[9];
 			int offset = thid*WEIGHTS_SIZE;
+			assert(offset<1024*54);
 			for(int i=0; i<9; i++) values[i] = 0;
-		  values[0] = 1/(1 + exp(-hor-1));
-		  values[1] = 1/(1 + exp(-hei-1));
-		  for(int i=0; i<2; i++) {
+			values[0] = 1/(1 + exp(-hor));
+		  values[1] = 1/(1 + exp(-hei));
+			//assert(thid >= 0);
+			for(int i=0; i<2; i++) {
 		    for(int j=0; j<6; j++) {
-		      values[j+2] += weights[offset+i*6+j]*values[i];
+					assert(offset + i*6 + j >= 0);
+					assert(offset + i*6 + j < 1024*54);
+		      values[j+2] += (weights[1]*values[i]); // offset + i*6 + j
 		    }
 		  }
-		  for(int i=2; i<8; i++) {
-		    values[i] = 1/(1 + exp(-values[i]-1));
-		    values[8] +=  weights[offset+i*6+0]*values[i];
-		  }
-			res = 1/(1 + exp(-values[8]-0.5));
+			for(int i=2; i<8; i++) {
+				values[i] = 1/(1 + exp(-values[i]));
+				values[8] +=  weights[offset+i*6+0]*values[i];
+			}
+			values[8] = 1/(1 + exp(-values[8])); // 8
+			*res = values[8];
 		}
 }
 
@@ -257,35 +258,36 @@ extern "C" {
 			createTree(list, SECOND_TREE, &states[thid]);
 			createTree(list, THIRD_TREE, &states[thid]);
 			Bird bird;
+
 			while(1) {
 				treeToRemove(list, bird, gameScore);
 				float decr = SCREEN_H/(FPS*TIME_FALL_BIRD);
 				for(int i=0; i<list.size; i++)
 					list.trees[i].x -= MOVE_PIXS_ON_SEC/FPS;
+
+				if(list.trees[0].x + WIDTH_TREE < 0) {
+					list.removeFromStart();
+				}
+
 				if(SCREEN_W - list.trees[list.size-1].x >= DIST_BET_TWO) {
 					 createTree(list, list.trees[list.size-1].x + DIST_BET_TWO, &states[thid]);
 				}
+
 				if(bird.active) {
-					int idx = list.trees[0].x > bird.x ? 0 : 1;
-					float horizontal = list.trees[idx].x + WIDTH_TREE - bird.x;
-					float heighDiff = ((list.trees[idx].h1 + list.trees[idx].h2)/2) - bird.y;
-					float val = 0.0;
-				  sigmoid(weights, horizontal, heighDiff, val);
-					//if(thid<10) {
-						//printf("%d %f\n", thid, val);
-				  //}
-					if(val>0.5) bird.moveUp = true;
-					else bird.moveUp = false;
+						int idx = (list.trees[0].x > bird.x) ? 0 : 1;
+						float horizontal = list.trees[idx].x + WIDTH_TREE - bird.x;
+						float heighDiff = ((list.trees[idx].h1 + list.trees[idx].h2)/2) - bird.y;
+						//if(heighDiff<0) heighDiff = -heighDiff;
+						float val = 0.0;
+					  sigmoid(weights, horizontal, heighDiff, &val);
+						if(val>0.5) bird.moveUp = true;
+						else bird.moveUp = false;
 				}
 				collisionCheck(list, bird);
 				if(bird.active)
 					droppedTooLow(bird);
 				if(bird.active) {
-						if(list.trees[0].x + WIDTH_TREE < 0) {
-							list.removeFromStart();
-						}
-						if(bird.active)
-							update(bird);
+						update(bird);
 				} else {
 					break;
 				}
@@ -293,7 +295,6 @@ extern "C" {
 			float res;
 			fitness_function(list, gameScore, bird, res);
 			fitness[thid] = res;
-			__syncthreads();
 	 }
 }
 
@@ -306,11 +307,11 @@ extern "C" {
 				int off_crs = ms*WEIGHTS_SIZE;
 				for(int i=0; i<9; i++) {
 						for(int j=0; j<6; j++) {
-							float tmp, prev = crosses[off_crs+i*6+j];
+							float tmp;
+							float prev = crosses[off_crs+i*6+j];
 							randFloat(tmp, prev-EPS, prev+EPS, &states[thid]);
 							weights[offset + i*6 + j] = tmp;
 						}
 				}
-				__syncthreads();
 		}
 }

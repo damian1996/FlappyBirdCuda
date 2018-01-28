@@ -2,6 +2,7 @@
 #define BOT_H
 
 #include "Train.h"
+#include <iostream>
 
 class Bot {
 public:
