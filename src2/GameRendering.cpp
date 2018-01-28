@@ -211,7 +211,8 @@ void GameRendering::mainLoop()
                           float heighDiff = ((logic.list_trees[idx].y + logic.list_trees[idx].height2)/2) - logic.gil[i].y;
                           //if(heighDiff<0) heighDiff = -heighDiff;
                           float val = logic.botToTrain.visibleNets[i].sigmoid(horizontal, heighDiff);
-                          if(val>=0.5) logic.gil[i].moveUp = true;
+                          //if(val>=0.5) logic.gil[i].moveUp = true;
+                          if(val>=0) logic.gil[i].moveUp = true;
                           else logic.gil[i].moveUp = false;
                       }
                     }

@@ -42,7 +42,6 @@ float NeuralNetwork::sigmoid(float hor, float hei) {
     values[i] = 1/(1 + exp(-values[i]));
     values[8] += weights[i][0]*values[i];
   }
-  printf("%f\n", values[8]);
-  values[8] = 1/(1 + exp(-values[8]));
+  //values[8] = 1/(1 + exp(-values[8]));
   return values[8];
 }

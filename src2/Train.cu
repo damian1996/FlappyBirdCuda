@@ -243,7 +243,7 @@ extern "C" {
 				values[i] = 1/(1 + exp(-values[i]));
 				values[8] +=  weights[offset+i*6+0]*values[i];
 			}
-			values[8] = 1/(1 + exp(-values[8])); // 8
+			//values[8] = 1/(1 + exp(-values[8])); // 8
 			*res = values[8];
 		}
 }
@@ -280,7 +280,8 @@ extern "C" {
 						//if(heighDiff<0) heighDiff = -heighDiff;
 						float val = 0.0;
 					  sigmoid(weights, horizontal, heighDiff, &val);
-						if(val>0.5) bird.moveUp = true;
+						if(val>=0) bird.moveUp = true;
+						//if(val>0.5) bird.moveUp = true;
 						else bird.moveUp = false;
 				}
 				collisionCheck(list, bird);
