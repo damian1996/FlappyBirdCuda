@@ -179,6 +179,18 @@ std::vector<Bird*> CudaX::hiddenRounds() {
         chooseBestFitnesses(WINNERS, beasts);
         crossover();
         mutationKernel();
+        /*float *tempFitness = new float[UNITY_IN_TRAINING];
+        for(int i=0; i<UNITY_IN_TRAINING; i++)
+            tempFitness[i] = 0;
+        for(int i=0; i<5; i++) {
+            fitnessKernel();
+            for(int i=0; i<UNITY_IN_TRAINING; i++) {
+                tempFitness[i] += fitCoefs[i];
+            }
+        }
+        for(int i=0; i<UNITY_IN_TRAINING; i++)
+            fitCoefs[i] = tempFitness[i]/5;
+        delete [] tempFitness;*/
     }
     fitnessKernel();
     chooseBestFitnesses(NUMBER_DISPLAY_BOTS, birdsToShow);
